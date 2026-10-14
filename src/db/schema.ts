@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  customType,
   index,
   integer,
   numeric,
@@ -13,6 +14,10 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "bytea",
+});
 
 export const roleEnum = pgEnum("role", ["admin", "employee"]);
 export const taskStatusEnum = pgEnum("task_status", ["pending", "in_progress", "completed"]);
@@ -69,6 +74,7 @@ export const tasks = pgTable(
     startedAt: timestamp("started_at", { withTimezone: true }),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
     onTime: boolean("on_time"),
+    requiresEvidence: boolean("requires_evidence").notNull().default(false),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => users.id),
@@ -110,3 +116,17 @@ export const taskNotes = pgTable(
   },
   (t) => [index("task_notes_task_id_idx").on(t.taskId)],
 );
+
+// Una sola evidencia por tarea, se carga al finalizarla. La foto va en la base para que los backups la incluyan.
+export const taskEvidence = pgTable("task_evidence", {
+  taskId: integer("task_id")
+    .primaryKey()
+    .references(() => tasks.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id")
+    .notNull()
+    .references(() => users.id),
+  photo: bytea("photo").notNull(),
+  mimeType: text("mime_type").notNull(),
+  comment: text("comment"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

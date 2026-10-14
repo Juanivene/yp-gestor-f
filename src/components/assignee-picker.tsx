@@ -47,7 +47,7 @@ function Slot({
             aria-invalid={invalid}
             aria-label={`Trabajador ${index + 1}`}
             className={cn(
-              "w-full justify-between font-normal",
+              "min-w-0 flex-1 justify-between font-normal",
               !selected && "text-muted-foreground",
               invalid && "border-destructive",
             )}
@@ -56,7 +56,7 @@ function Slot({
               {selected ? selected.label : "Elegí un trabajador"}
               {selected?.inactive && " (De baja)"}
             </span>
-            <ChevronsUpDown className="size-4 opacity-50" />
+            <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-64">
@@ -90,16 +90,18 @@ function Slot({
           </Command>
         </PopoverContent>
       </Popover>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        aria-label={`Quitar trabajador ${index + 1}`}
-        disabled={!canRemove}
-        onClick={onRemove}
-      >
-        <X />
-      </Button>
+      {canRemove && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="shrink-0"
+          aria-label={`Quitar trabajador ${index + 1}`}
+          onClick={onRemove}
+        >
+          <X />
+        </Button>
+      )}
     </div>
   );
 }

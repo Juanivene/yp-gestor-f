@@ -32,6 +32,7 @@ type FormValues = {
   location: string;
   estimatedHours: string;
   assigneeIds: string[];
+  requiresEvidence: boolean;
 };
 
 const EMPTY: FormValues = {
@@ -41,6 +42,7 @@ const EMPTY: FormValues = {
   location: "",
   estimatedHours: "",
   assigneeIds: [],
+  requiresEvidence: false,
 };
 
 function FieldError({ message }: { message?: string }) {
@@ -194,6 +196,16 @@ export function CreateTaskDialog({
             <AssigneePicker slots={slots} onChange={changeSlots} options={options} invalid={Boolean(errors.assigneeIds)} />
             <FieldError message={errors.assigneeIds?.message} />
           </div>
+
+          <label className="flex items-start gap-3 rounded-lg border px-3 py-2.5 text-sm">
+            <input type="checkbox" className="mt-0.5 size-4 accent-primary" {...register("requiresEvidence")} />
+            <span>
+              <span className="font-medium">Requiere evidencia</span>
+              <span className="block text-muted-foreground">
+                Al finalizar, el empleado tiene que cargar una foto o confirmar que la termina sin ella.
+              </span>
+            </span>
+          </label>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting}>

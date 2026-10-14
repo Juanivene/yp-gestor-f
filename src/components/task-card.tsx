@@ -3,17 +3,9 @@
 import { Clock, Loader2, MapPin, Play, Square, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { finishTaskAction, startTaskAction } from "@/actions/tasks";
-import { OnTimeBadge, StatusBadge } from "@/components/task-status";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { startTaskAction } from "@/actions/tasks";
+import { FinishTaskDialog } from "@/components/finish-task-dialog";
+import { MissingEvidenceBadge, OnTimeBadge, StatusBadge } from "@/components/task-status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -43,23 +35,6 @@ export function TaskCard({
       const res = await startTaskAction(task.id);
       if (res.ok) toast.success(messages.tasks.started);
       else toast.error(res.error);
-    } catch {
-      toast.error(messages.generic.error);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function finish() {
-    setBusy(true);
-    try {
-      const res = await finishTaskAction(task.id);
-      setConfirmOpen(false);
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      onFinished(res.data.onTime);
     } catch {
       toast.error(messages.generic.error);
     } finally {
@@ -103,10 +78,13 @@ export function TaskCard({
             </span>
           </p>
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Clock className="size-4 shrink-0" />
           {task.status === "completed" ? (
-            <OnTimeBadge onTime={task.onTime} />
+            <>
+              <OnTimeBadge onTime={task.onTime} />
+              {task.requiresEvidence && !task.hasEvidence && <MissingEvidenceBadge />}
+            </>
           ) : (
             <span>Estimado: {formatHours(task.estimatedHours)}</span>
           )}
@@ -141,23 +119,13 @@ export function TaskCard({
             <Square />
             Finalizar trabajo
           </Button>
-          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{messages.tasks.confirmFinish}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Vamos a registrar la hora de fin ahora mismo. Esto no se puede deshacer.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={busy}>Todavía no</AlertDialogCancel>
-                <Button variant="success" onClick={finish} disabled={busy}>
-                  {busy && <Loader2 className="animate-spin" />}
-                  Sí, terminé
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <FinishTaskDialog
+            taskId={task.id}
+            requiresEvidence={task.requiresEvidence}
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+            onFinished={onFinished}
+          />
         </>
       )}
     </Card>

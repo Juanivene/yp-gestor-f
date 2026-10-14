@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, ClipboardList, Menu, Star, Users, Wrench, type LucideIcon } from "lucide-react";
+import { Building2, CheckCircle2, ClipboardList, Menu, Star, Users, Wrench, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -15,6 +15,7 @@ const NAV: Record<"admin" | "employee", NavItem[]> = {
   admin: [
     { href: "/admin", label: "Tareas", icon: ClipboardList, exact: true },
     { href: "/admin/usuarios", label: "Usuarios", icon: Users },
+    { href: "/admin/estaciones", label: "Estaciones", icon: Building2 },
   ],
   employee: [
     { href: "/empleado", label: "Inicio", icon: ClipboardList, exact: true },

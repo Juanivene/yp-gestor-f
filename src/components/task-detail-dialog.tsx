@@ -7,7 +7,7 @@ import { useForm, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 import { addNoteAction, getTaskDetailAction, updateTaskAction } from "@/actions/tasks";
 import { AssigneePicker, type PickerOption } from "@/components/assignee-picker";
-import { OnTimeBadge, StatusBadge } from "@/components/task-status";
+import { MissingEvidenceBadge, OnTimeBadge, StatusBadge } from "@/components/task-status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -227,6 +227,7 @@ function DetailBody({
         {task.incidentNumber !== null && <Badge variant="important">Incidencia #{task.incidentNumber}</Badge>}
         <StatusBadge status={task.status} />
         {task.status === "completed" && <OnTimeBadge onTime={task.onTime} />}
+        {task.status === "completed" && task.requiresEvidence && !task.evidence && <MissingEvidenceBadge />}
       </div>
 
       <dl className="space-y-4">
@@ -255,6 +256,23 @@ function DetailBody({
           </ul>
         </Field>
       </dl>
+
+      {task.evidence && (
+        <section className="space-y-2">
+          <h3 className="text-sm font-semibold">Evidencia</h3>
+          <a href={`/api/evidencia/${task.id}`} target="_blank" rel="noreferrer">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/api/evidencia/${task.id}`}
+              alt="Evidencia del trabajo"
+              loading="lazy"
+              className="max-h-80 w-full rounded-lg border object-contain"
+            />
+          </a>
+          {task.evidence.comment && <p className="text-sm whitespace-pre-wrap">{task.evidence.comment}</p>}
+          <p className="text-xs text-muted-foreground">Cargada el {formatDateTime(task.evidence.createdAt)}</p>
+        </section>
+      )}
 
       <section className="space-y-2">
         <h3 className="text-sm font-semibold">Notas</h3>

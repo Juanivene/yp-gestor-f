@@ -4,13 +4,15 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { stations, taskAssignees, taskNotes, tasks, users } from "@/db/schema";
+import { stations, taskAssignees, taskEvidence, taskNotes, tasks, users } from "@/db/schema";
 import { isFailure, requireActionRole, type ActionResult } from "@/lib/auth/guards";
 import { getCurrentUser } from "@/lib/auth/session";
 import { messages } from "@/lib/messages";
 import { getTaskDetail, type NoteData, type TaskDetailData } from "@/lib/queries";
 import {
   createTaskSchema,
+  EVIDENCE_MAX_BYTES,
+  evidenceCommentSchema,
   noteSchema,
   updateTaskSchema,
   type CreateTaskInput,
@@ -76,6 +78,7 @@ export async function createTaskAction(input: CreateTaskInput): Promise<ActionRe
           description: d.description,
           location: d.location,
           estimatedHours: String(d.estimatedHours),
+          requiresEvidence: d.requiresEvidence,
           createdBy: admin.id,
         })
         .returning({ id: tasks.id });
@@ -164,24 +167,53 @@ export async function startTaskAction(taskId: number): Promise<ActionResult> {
   }
 }
 
-export async function finishTaskAction(taskId: number): Promise<ActionResult<{ onTime: boolean }>> {
+// Detecta el tipo real por los primeros bytes, sin confiar en lo que declara el navegador.
+function sniffImageType(b: Buffer): string | null {
+  if (b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  if (b.length > 8 && b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "image/png";
+  if (b.length > 12 && b.toString("ascii", 0, 4) === "RIFF" && b.toString("ascii", 8, 12) === "WEBP") return "image/webp";
+  return null;
+}
+
+// FormData: taskId, photo (archivo, opcional) y comment (opcional). Sin foto = sin evidencia.
+export async function finishTaskAction(formData: FormData): Promise<ActionResult<{ onTime: boolean }>> {
   const user = await requireActionRole("employee");
   if (isFailure(user)) return user;
+
+  const taskId = Number(formData.get("taskId"));
   if (!Number.isInteger(taskId)) return { ok: false, error: messages.tasks.notFound };
 
-  try {
-    const updated = await db
-      .update(tasks)
-      .set({
-        status: "completed",
-        finishedAt: sql`now()`,
-        onTime: sql`(now() - ${tasks.startedAt}) <= (${tasks.estimatedHours} * interval '1 hour')`,
-        updatedAt: sql`now()`,
-      })
-      .where(and(eq(tasks.id, taskId), eq(tasks.status, "in_progress"), assignedTo(taskId, user.id)))
-      .returning({ onTime: tasks.onTime });
+  let evidence: { photo: Buffer; mimeType: string; comment: string | null } | null = null;
+  const file = formData.get("photo");
+  if (file instanceof File && file.size > 0) {
+    if (file.size > EVIDENCE_MAX_BYTES) return { ok: false, error: messages.tasks.evidenceInvalid };
+    const photo = Buffer.from(await file.arrayBuffer());
+    const mimeType = sniffImageType(photo);
+    if (!mimeType) return { ok: false, error: messages.tasks.evidenceInvalid };
+    const rawComment = formData.get("comment");
+    const comment = evidenceCommentSchema.safeParse(typeof rawComment === "string" ? rawComment : "");
+    if (!comment.success) return { ok: false, error: comment.error.issues[0].message };
+    evidence = { photo, mimeType, comment: comment.data || null };
+  }
 
-    if (updated.length === 0) {
+  try {
+    const result = await db.transaction(async (tx) => {
+      const updated = await tx
+        .update(tasks)
+        .set({
+          status: "completed",
+          finishedAt: sql`now()`,
+          onTime: sql`(now() - ${tasks.startedAt}) <= (${tasks.estimatedHours} * interval '1 hour')`,
+          updatedAt: sql`now()`,
+        })
+        .where(and(eq(tasks.id, taskId), eq(tasks.status, "in_progress"), assignedTo(taskId, user.id)))
+        .returning({ onTime: tasks.onTime });
+      if (updated.length === 0) return null;
+      if (evidence) await tx.insert(taskEvidence).values({ taskId, authorId: user.id, ...evidence });
+      return updated[0];
+    });
+
+    if (!result) {
       const [row] = await db
         .select({ id: tasks.id })
         .from(tasks)
@@ -192,7 +224,7 @@ export async function finishTaskAction(taskId: number): Promise<ActionResult<{ o
       return { ok: false, error: messages.tasks.notFinishable };
     }
     refresh();
-    return { ok: true, data: { onTime: updated[0].onTime === true } };
+    return { ok: true, data: { onTime: result.onTime === true } };
   } catch {
     return { ok: false, error: messages.generic.error };
   }

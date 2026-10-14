@@ -13,6 +13,10 @@ export function StatusBadge({ status }: { status: TaskStatus }) {
   return <Badge variant={VARIANT[status]}>{LABEL[status]}</Badge>;
 }
 
+export function MissingEvidenceBadge() {
+  return <Badge variant="pending">No se declaró evidencia</Badge>;
+}
+
 export function OnTimeBadge({ onTime }: { onTime: boolean | null }) {
   return onTime ? <Badge variant="success">En tiempo</Badge> : <Badge variant="danger">Fuera de tiempo</Badge>;
 }
