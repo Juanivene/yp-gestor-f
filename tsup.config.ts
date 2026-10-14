@@ -8,6 +8,6 @@ export default defineConfig({
   platform: "node",
   target: "node22",
   clean: true,
-  noExternal: [/.*/],
+  noExternal: [/^drizzle-orm/, "postgres"],
   external: ["@node-rs/argon2"],
 });

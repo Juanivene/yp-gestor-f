@@ -1,3 +1,5 @@
+name: ypf-dev
+
 # Solo Postgres, expuesto en localhost:5432, para desarrollar con `npm run dev`.
 services:
   db:
