@@ -5,10 +5,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { startTaskAction } from "@/actions/tasks";
 import { FinishTaskDialog } from "@/components/finish-task-dialog";
-import { MissingEvidenceBadge, OnTimeBadge, StatusBadge } from "@/components/task-status";
+import { ImportantBadge, MissingEvidenceBadge, OnTimeBadge, StatusBadge } from "@/components/task-status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { formatHours } from "@/lib/format";
 import { messages } from "@/lib/messages";
 import type { TaskCardData } from "@/lib/queries";
@@ -53,9 +54,15 @@ export function TaskCard({
           onOpen(task.id);
         }
       }}
-      className="cursor-pointer transition-colors hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+      className={cn(
+        "cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none",
+        task.isImportant
+          ? "border-red-500/60 bg-red-500/5 ring-1 ring-red-500/30 hover:border-red-500"
+          : "hover:border-primary/50",
+      )}
     >
       <div className="flex flex-wrap items-center gap-2">
+        {task.isImportant && <ImportantBadge />}
         <Badge variant="secondary">{task.stationName}</Badge>
         {task.incidentNumber !== null && <Badge variant="important">Incidencia #{task.incidentNumber}</Badge>}
         <div className="ml-auto">

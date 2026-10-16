@@ -8,6 +8,7 @@ import { stations, taskAssignees, taskEvidence, taskNotes, tasks, users } from "
 import { isFailure, requireActionRole, type ActionResult } from "@/lib/auth/guards";
 import { getCurrentUser } from "@/lib/auth/session";
 import { messages } from "@/lib/messages";
+import { clip, notifyAdmins, notifyUsers } from "@/lib/notifications";
 import { getTaskDetail, type NoteData, type TaskDetailData } from "@/lib/queries";
 import {
   createTaskSchema,
@@ -57,7 +58,7 @@ export async function createTaskAction(input: CreateTaskInput): Promise<ActionRe
 
   try {
     const [station] = await db
-      .select({ id: stations.id })
+      .select({ id: stations.id, name: stations.name })
       .from(stations)
       .where(and(eq(stations.id, d.stationId), eq(stations.isActive, true)))
       .limit(1);
@@ -79,10 +80,17 @@ export async function createTaskAction(input: CreateTaskInput): Promise<ActionRe
           location: d.location,
           estimatedHours: String(d.estimatedHours),
           requiresEvidence: d.requiresEvidence,
+          isImportant: d.isImportant,
           createdBy: admin.id,
         })
         .returning({ id: tasks.id });
       await tx.insert(taskAssignees).values(d.assigneeIds.map((userId) => ({ taskId: task.id, userId })));
+      await notifyUsers(tx, d.assigneeIds, {
+        taskId: task.id,
+        type: "task_assigned",
+        message: `${d.isImportant ? "Tarea importante asignada" : "Nueva tarea asignada"} en ${station.name}: ${clip(d.description)}`,
+        isImportant: d.isImportant,
+      });
       return task.id;
     });
     refresh();
@@ -103,7 +111,12 @@ export async function updateTaskAction(taskId: number, input: UpdateTaskInput): 
   const d = parsed.data;
 
   try {
-    const [task] = await db.select({ id: tasks.id }).from(tasks).where(eq(tasks.id, taskId)).limit(1);
+    const [task] = await db
+      .select({ id: tasks.id, isImportant: tasks.isImportant, stationName: stations.name })
+      .from(tasks)
+      .innerJoin(stations, eq(stations.id, tasks.stationId))
+      .where(eq(tasks.id, taskId))
+      .limit(1);
     if (!task) return { ok: false, error: messages.tasks.notFound };
 
     const current = await db
@@ -122,16 +135,41 @@ export async function updateTaskAction(taskId: number, input: UpdateTaskInput): 
     await db.transaction(async (tx) => {
       await tx
         .update(tasks)
-        .set({ description: d.description, location: d.location, updatedAt: sql`now()` })
+        .set({ description: d.description, location: d.location, isImportant: d.isImportant, updatedAt: sql`now()` })
         .where(eq(tasks.id, taskId));
       await tx.delete(taskAssignees).where(eq(taskAssignees.taskId, taskId));
       await tx.insert(taskAssignees).values(d.assigneeIds.map((userId) => ({ taskId, userId })));
+
+      // Los que se suman reciben "tarea asignada"; los que ya estaban, solo si la tarea pasó a ser importante.
+      const previous = new Set(current.map((c) => c.userId));
+      const added = d.assigneeIds.filter((id) => !previous.has(id));
+      const stayed = d.assigneeIds.filter((id) => previous.has(id));
+      const detail = `en ${task.stationName}: ${clip(d.description)}`;
+      await notifyUsers(tx, added, {
+        taskId,
+        type: "task_assigned",
+        message: `${d.isImportant ? "Tarea importante asignada" : "Nueva tarea asignada"} ${detail}`,
+        isImportant: d.isImportant,
+      });
+      if (d.isImportant && !task.isImportant) {
+        await notifyUsers(tx, stayed, {
+          taskId,
+          type: "task_marked_important",
+          message: `Tarea marcada como importante ${detail}`,
+          isImportant: true,
+        });
+      }
     });
     refresh();
     return { ok: true, data: null };
   } catch {
     return { ok: false, error: messages.generic.saveError };
   }
+}
+
+async function stationSuffix(tx: Pick<typeof db, "select">, stationId: number): Promise<string> {
+  const [s] = await tx.select({ name: stations.name }).from(stations).where(eq(stations.id, stationId)).limit(1);
+  return s ? ` en ${s.name}` : "";
 }
 
 const assignedTo = (taskId: number, userId: string) =>
@@ -144,11 +182,22 @@ export async function startTaskAction(taskId: number): Promise<ActionResult> {
 
   try {
     // Transición atómica y condicional: solo avanza si sigue pendiente y el usuario está asignado.
-    const updated = await db
-      .update(tasks)
-      .set({ status: "in_progress", startedAt: sql`now()`, updatedAt: sql`now()` })
-      .where(and(eq(tasks.id, taskId), eq(tasks.status, "pending"), assignedTo(taskId, user.id)))
-      .returning({ id: tasks.id });
+    const updated = await db.transaction(async (tx) => {
+      const rows = await tx
+        .update(tasks)
+        .set({ status: "in_progress", startedAt: sql`now()`, updatedAt: sql`now()` })
+        .where(and(eq(tasks.id, taskId), eq(tasks.status, "pending"), assignedTo(taskId, user.id)))
+        .returning({ id: tasks.id, isImportant: tasks.isImportant, stationId: tasks.stationId });
+      if (rows.length > 0) {
+        await notifyAdmins(tx, {
+          taskId,
+          type: "task_started",
+          message: `${user.firstName} ${user.lastName} empezó la tarea #${taskId}${await stationSuffix(tx, rows[0].stationId)}`,
+          isImportant: rows[0].isImportant,
+        });
+      }
+      return rows;
+    });
 
     if (updated.length === 0) {
       const [row] = await db
@@ -207,9 +256,15 @@ export async function finishTaskAction(formData: FormData): Promise<ActionResult
           updatedAt: sql`now()`,
         })
         .where(and(eq(tasks.id, taskId), eq(tasks.status, "in_progress"), assignedTo(taskId, user.id)))
-        .returning({ onTime: tasks.onTime });
+        .returning({ onTime: tasks.onTime, isImportant: tasks.isImportant, stationId: tasks.stationId });
       if (updated.length === 0) return null;
       if (evidence) await tx.insert(taskEvidence).values({ taskId, authorId: user.id, ...evidence });
+      await notifyAdmins(tx, {
+        taskId,
+        type: "task_finished",
+        message: `${user.firstName} ${user.lastName} finalizó la tarea #${taskId}${await stationSuffix(tx, updated[0].stationId)}`,
+        isImportant: updated[0].isImportant,
+      });
       return updated[0];
     });
 

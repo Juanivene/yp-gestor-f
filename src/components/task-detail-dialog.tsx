@@ -1,13 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Pencil, Send } from "lucide-react";
+import { AlertTriangle, Loader2, Pencil, Send } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 import { addNoteAction, getTaskDetailAction, updateTaskAction } from "@/actions/tasks";
 import { AssigneePicker, type PickerOption } from "@/components/assignee-picker";
-import { MissingEvidenceBadge, OnTimeBadge, StatusBadge } from "@/components/task-status";
+import { ImportantBadge, MissingEvidenceBadge, OnTimeBadge, StatusBadge } from "@/components/task-status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -98,7 +98,7 @@ function NoteComposer({ task, onAdded }: { task: TaskDetailData; onAdded: (note:
   );
 }
 
-type EditValues = { description: string; location: string; assigneeIds: string[] };
+type EditValues = { description: string; location: string; assigneeIds: string[]; isImportant: boolean };
 
 function EditForm({
   task,
@@ -123,7 +123,12 @@ function EditForm({
     formState: { errors },
   } = useForm<EditValues>({
     resolver: zodResolver(updateTaskSchema) as unknown as Resolver<EditValues>,
-    defaultValues: { description: task.description, location: task.location, assigneeIds: initialSlots },
+    defaultValues: {
+      description: task.description,
+      location: task.location,
+      assigneeIds: initialSlots,
+      isImportant: task.isImportant,
+    },
   });
 
   // Empleados activos + los ya asignados que están de baja (se pueden quitar, no volver a agregar).
@@ -178,6 +183,13 @@ function EditForm({
         <AssigneePicker slots={slots} onChange={changeSlots} options={options} invalid={Boolean(errors.assigneeIds)} />
         {errors.assigneeIds && <p className="text-sm text-red-400">{errors.assigneeIds.message}</p>}
       </div>
+      <label className="flex items-start gap-3 rounded-lg border px-3 py-2.5 text-sm">
+        <input type="checkbox" className="mt-0.5 size-4 accent-red-500" {...register("isImportant")} />
+        <span>
+          <span className="font-medium">Marcar como importante</span>
+          <span className="block text-muted-foreground">Se destaca en la tarea y en las notificaciones.</span>
+        </span>
+      </label>
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
           Cancelar
@@ -222,7 +234,17 @@ function DetailBody({
 
   return (
     <div className="space-y-5">
+      {task.isImportant && (
+        <div
+          role="note"
+          className="flex items-center gap-2 rounded-lg border border-red-500/60 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-200"
+        >
+          <AlertTriangle className="size-4 shrink-0" />
+          Tarea importante
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
+        {task.isImportant && <ImportantBadge />}
         <Badge variant="secondary">{task.stationName}</Badge>
         {task.incidentNumber !== null && <Badge variant="important">Incidencia #{task.incidentNumber}</Badge>}
         <StatusBadge status={task.status} />

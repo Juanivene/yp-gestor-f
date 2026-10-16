@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { TaskStatus } from "@/lib/queries";
 
@@ -11,6 +12,15 @@ const VARIANT = { pending: "pending", in_progress: "progress", completed: "succe
 
 export function StatusBadge({ status }: { status: TaskStatus }) {
   return <Badge variant={VARIANT[status]}>{LABEL[status]}</Badge>;
+}
+
+export function ImportantBadge() {
+  return (
+    <Badge variant="danger" className="border-red-500/50 bg-red-500/20 text-red-200">
+      <AlertTriangle />
+      Importante
+    </Badge>
+  );
 }
 
 export function MissingEvidenceBadge() {

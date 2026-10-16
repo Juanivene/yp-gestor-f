@@ -75,6 +75,7 @@ export const tasks = pgTable(
     finishedAt: timestamp("finished_at", { withTimezone: true }),
     onTime: boolean("on_time"),
     requiresEvidence: boolean("requires_evidence").notNull().default(false),
+    isImportant: boolean("is_important").notNull().default(false),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => users.id),
@@ -130,3 +131,31 @@ export const taskEvidence = pgTable("task_evidence", {
   comment: text("comment"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "task_assigned",
+  "task_marked_important",
+  "task_started",
+  "task_finished",
+]);
+
+// Una fila por destinatario. readAt = vista; dismissedAt = oculta del panel (se borran a los 30 días).
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: serial("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    taskId: integer("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    type: notificationTypeEnum("type").notNull(),
+    message: text("message").notNull(),
+    isImportant: boolean("is_important").notNull().default(false),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("notifications_user_created_idx").on(t.userId, t.createdAt)],
+);

@@ -33,6 +33,7 @@ type FormValues = {
   estimatedHours: string;
   assigneeIds: string[];
   requiresEvidence: boolean;
+  isImportant: boolean;
 };
 
 const EMPTY: FormValues = {
@@ -43,6 +44,7 @@ const EMPTY: FormValues = {
   estimatedHours: "",
   assigneeIds: [],
   requiresEvidence: false,
+  isImportant: false,
 };
 
 function FieldError({ message }: { message?: string }) {
@@ -203,6 +205,16 @@ export function CreateTaskDialog({
               <span className="font-medium">Requiere evidencia</span>
               <span className="block text-muted-foreground">
                 Al finalizar, el empleado tiene que cargar una foto o confirmar que la termina sin ella.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-start gap-3 rounded-lg border px-3 py-2.5 text-sm">
+            <input type="checkbox" className="mt-0.5 size-4 accent-red-500" {...register("isImportant")} />
+            <span>
+              <span className="font-medium">Marcar como importante</span>
+              <span className="block text-muted-foreground">
+                Se destaca en la tarea y en la notificación que reciben los trabajadores.
               </span>
             </span>
           </label>

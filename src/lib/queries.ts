@@ -18,6 +18,7 @@ export type TaskCardData = {
   onTime: boolean | null;
   requiresEvidence: boolean;
   hasEvidence: boolean;
+  isImportant: boolean;
   assignees: AssigneeInfo[];
 };
 
@@ -89,6 +90,7 @@ const taskColumns = {
   status: tasks.status,
   onTime: tasks.onTime,
   requiresEvidence: tasks.requiresEvidence,
+  isImportant: tasks.isImportant,
   hasEvidence: sql<boolean>`EXISTS (SELECT 1 FROM ${taskEvidence} WHERE ${taskEvidence.taskId} = ${tasks.id})`,
   startedAt: tasks.startedAt,
   finishedAt: tasks.finishedAt,
@@ -150,6 +152,7 @@ export async function listTasks(filters: TaskFilters = {}): Promise<TaskCardData
       onTime: r.onTime,
       requiresEvidence: r.requiresEvidence,
       hasEvidence: r.hasEvidence,
+      isImportant: r.isImportant,
     })),
   );
 }

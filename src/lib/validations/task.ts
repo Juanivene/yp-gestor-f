@@ -19,9 +19,10 @@ export const createTaskSchema = taskFieldsSchema.extend({
     .gt(0, "Las horas tienen que ser mayores a 0")
     .max(999, "Ese tiempo es demasiado largo"),
   requiresEvidence: z.boolean().default(false),
+  isImportant: z.boolean().default(false),
 });
 
-export const updateTaskSchema = taskFieldsSchema;
+export const updateTaskSchema = taskFieldsSchema.extend({ isImportant: z.boolean() });
 
 export const noteSchema = z.object({
   body: z.string().trim().min(1, "Escribí una nota").max(1000, "Máximo 1000 caracteres"),
