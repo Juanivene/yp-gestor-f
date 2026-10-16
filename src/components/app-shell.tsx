@@ -1,9 +1,10 @@
 "use client";
 
-import { CheckCircle2, ClipboardList, Menu, Star, Users, Wrench, type LucideIcon } from "lucide-react";
+import { Building2, CheckCircle2, ClipboardList, Menu, Star, Users, Wrench, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { NotificationBell } from "@/components/notification-bell";
 import { LogoutButton } from "@/components/logout-button";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -15,6 +16,7 @@ const NAV: Record<"admin" | "employee", NavItem[]> = {
   admin: [
     { href: "/admin", label: "Tareas", icon: ClipboardList, exact: true },
     { href: "/admin/usuarios", label: "Usuarios", icon: Users },
+    { href: "/admin/estaciones", label: "Estaciones", icon: Building2 },
   ],
   employee: [
     { href: "/empleado", label: "Inicio", icon: ClipboardList, exact: true },
@@ -88,10 +90,10 @@ export function AppShell({ user, children }: { user: ShellUser; children: React.
         <SidebarContent user={user} />
       </aside>
 
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/95 px-3 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/95 px-3 backdrop-blur">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Abrir menú">
+            <Button variant="ghost" size="icon" aria-label="Abrir menú" className="lg:hidden">
               <Menu className="size-5" />
             </Button>
           </SheetTrigger>
@@ -101,11 +103,14 @@ export function AppShell({ user, children }: { user: ShellUser; children: React.
             <SidebarContent user={user} onNavigate={() => setOpen(false)} />
           </SheetContent>
         </Sheet>
-        <div className="min-w-0 flex-1 text-right">
+        <div className="min-w-0 flex-1 text-right lg:hidden">
           <p className="truncate text-sm font-medium">
             {user.firstName} {user.lastName}
           </p>
           <p className="text-xs text-muted-foreground">{ROLE_LABEL[user.role]}</p>
+        </div>
+        <div className="shrink-0 lg:ml-auto">
+          <NotificationBell role={user.role} />
         </div>
       </header>
 

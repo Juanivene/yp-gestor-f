@@ -3,20 +3,13 @@
 import { Clock, Loader2, MapPin, Play, Square, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { finishTaskAction, startTaskAction } from "@/actions/tasks";
-import { OnTimeBadge, StatusBadge } from "@/components/task-status";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { startTaskAction } from "@/actions/tasks";
+import { FinishTaskDialog } from "@/components/finish-task-dialog";
+import { ImportantBadge, MissingEvidenceBadge, OnTimeBadge, StatusBadge } from "@/components/task-status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { formatHours } from "@/lib/format";
 import { messages } from "@/lib/messages";
 import type { TaskCardData } from "@/lib/queries";
@@ -50,23 +43,6 @@ export function TaskCard({
     }
   }
 
-  async function finish() {
-    setBusy(true);
-    try {
-      const res = await finishTaskAction(task.id);
-      setConfirmOpen(false);
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      onFinished(res.data.onTime);
-    } catch {
-      toast.error(messages.generic.error);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <Card
       role="button"
@@ -78,9 +54,15 @@ export function TaskCard({
           onOpen(task.id);
         }
       }}
-      className="cursor-pointer transition-colors hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+      className={cn(
+        "cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none",
+        task.isImportant
+          ? "border-red-500/60 bg-red-500/5 ring-1 ring-red-500/30 hover:border-red-500"
+          : "hover:border-primary/50",
+      )}
     >
       <div className="flex flex-wrap items-center gap-2">
+        {task.isImportant && <ImportantBadge />}
         <Badge variant="secondary">{task.stationName}</Badge>
         {task.incidentNumber !== null && <Badge variant="important">Incidencia #{task.incidentNumber}</Badge>}
         <div className="ml-auto">
@@ -103,10 +85,13 @@ export function TaskCard({
             </span>
           </p>
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Clock className="size-4 shrink-0" />
           {task.status === "completed" ? (
-            <OnTimeBadge onTime={task.onTime} />
+            <>
+              <OnTimeBadge onTime={task.onTime} />
+              {task.requiresEvidence && !task.hasEvidence && <MissingEvidenceBadge />}
+            </>
           ) : (
             <span>Estimado: {formatHours(task.estimatedHours)}</span>
           )}
@@ -141,23 +126,13 @@ export function TaskCard({
             <Square />
             Finalizar trabajo
           </Button>
-          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{messages.tasks.confirmFinish}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Vamos a registrar la hora de fin ahora mismo. Esto no se puede deshacer.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={busy}>Todavía no</AlertDialogCancel>
-                <Button variant="success" onClick={finish} disabled={busy}>
-                  {busy && <Loader2 className="animate-spin" />}
-                  Sí, terminé
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <FinishTaskDialog
+            taskId={task.id}
+            requiresEvidence={task.requiresEvidence}
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+            onFinished={onFinished}
+          />
         </>
       )}
     </Card>

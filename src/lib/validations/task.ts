@@ -18,13 +18,20 @@ export const createTaskSchema = taskFieldsSchema.extend({
     .number({ error: "Ingresá las horas estimadas" })
     .gt(0, "Las horas tienen que ser mayores a 0")
     .max(999, "Ese tiempo es demasiado largo"),
+  requiresEvidence: z.boolean().default(false),
+  isImportant: z.boolean().default(false),
 });
 
-export const updateTaskSchema = taskFieldsSchema;
+export const updateTaskSchema = taskFieldsSchema.extend({ isImportant: z.boolean() });
 
 export const noteSchema = z.object({
   body: z.string().trim().min(1, "Escribí una nota").max(1000, "Máximo 1000 caracteres"),
 });
+
+export const EVIDENCE_COMMENT_LIMIT = 500;
+export const EVIDENCE_MAX_BYTES = 5 * 1024 * 1024;
+
+export const evidenceCommentSchema = z.string().trim().max(EVIDENCE_COMMENT_LIMIT, "Máximo 500 caracteres");
 
 export type CreateTaskInput = z.input<typeof createTaskSchema>;
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;

@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  customType,
   index,
   integer,
   numeric,
@@ -13,6 +14,10 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "bytea",
+});
 
 export const roleEnum = pgEnum("role", ["admin", "employee"]);
 export const taskStatusEnum = pgEnum("task_status", ["pending", "in_progress", "completed"]);
@@ -69,6 +74,8 @@ export const tasks = pgTable(
     startedAt: timestamp("started_at", { withTimezone: true }),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
     onTime: boolean("on_time"),
+    requiresEvidence: boolean("requires_evidence").notNull().default(false),
+    isImportant: boolean("is_important").notNull().default(false),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => users.id),
@@ -109,4 +116,46 @@ export const taskNotes = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("task_notes_task_id_idx").on(t.taskId)],
+);
+
+// Una sola evidencia por tarea, se carga al finalizarla. La foto va en la base para que los backups la incluyan.
+export const taskEvidence = pgTable("task_evidence", {
+  taskId: integer("task_id")
+    .primaryKey()
+    .references(() => tasks.id, { onDelete: "cascade" }),
+  authorId: uuid("author_id")
+    .notNull()
+    .references(() => users.id),
+  photo: bytea("photo").notNull(),
+  mimeType: text("mime_type").notNull(),
+  comment: text("comment"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "task_assigned",
+  "task_marked_important",
+  "task_started",
+  "task_finished",
+]);
+
+// Una fila por destinatario. readAt = vista; dismissedAt = oculta del panel (se borran a los 30 días).
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: serial("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    taskId: integer("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    type: notificationTypeEnum("type").notNull(),
+    message: text("message").notNull(),
+    isImportant: boolean("is_important").notNull().default(false),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("notifications_user_created_idx").on(t.userId, t.createdAt)],
 );

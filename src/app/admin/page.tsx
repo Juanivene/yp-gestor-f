@@ -1,38 +1,50 @@
 import { ClipboardList, SearchX } from "lucide-react";
 import { CreateTaskDialog } from "@/components/create-task-dialog";
 import { EmptyState } from "@/components/empty-state";
-import { IncidentSearch } from "@/components/incident-search";
+import { TaskFiltersBar } from "@/components/task-filters";
 import { TaskGrid } from "@/components/task-grid";
-import { listActiveEmployees, listActiveStations, listTasks } from "@/lib/queries";
+import { parseTaskFilters } from "@/lib/task-filters";
+import { listActiveEmployees, listActiveStations, listAllEmployeeOptions, listAllStations, listTasks } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminTasksPage({ searchParams }: { searchParams: Promise<{ incidencia?: string }> }) {
-  const { incidencia } = await searchParams;
-  const parsed = incidencia ? Number.parseInt(incidencia, 10) : NaN;
-  const incident = Number.isInteger(parsed) && parsed > 0 && parsed <= 2147483647 ? parsed : null;
+export default async function AdminTasksPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const filters = parseTaskFilters(await searchParams);
+  const hasFilters = Object.keys(filters).length > 0;
 
-  const [tasks, employees, stations] = await Promise.all([
-    listTasks({ incident: incident ?? undefined }),
+  const [tasks, employees, activeStations, allStations, employeeOptions] = await Promise.all([
+    listTasks(filters),
     listActiveEmployees(),
     listActiveStations(),
+    listAllStations(),
+    listAllEmployeeOptions(),
   ]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Tareas</h1>
-        <CreateTaskDialog stations={stations} employees={employees} />
+        <CreateTaskDialog stations={activeStations} employees={employees} />
       </div>
 
-      <IncidentSearch key={incident ?? "all"} current={incident} resultCount={tasks.length} />
+      <TaskFiltersBar
+        key={JSON.stringify(filters)}
+        current={filters}
+        resultCount={tasks.length}
+        stations={allStations.map((s) => ({ id: s.id, name: s.name }))}
+        employees={employeeOptions}
+      />
 
       {tasks.length === 0 ? (
-        incident !== null ? (
+        hasFilters ? (
           <EmptyState
             icon={SearchX}
-            title={`No hay tareas con la incidencia #${incident}`}
-            description="Revisá el número o limpiá los filtros para ver todas las tareas."
+            title="No hay tareas con esos filtros"
+            description="Probá con otros criterios o limpiá los filtros para ver todas las tareas."
           />
         ) : (
           <EmptyState

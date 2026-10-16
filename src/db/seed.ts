@@ -25,6 +25,7 @@ type SeedTask = {
   // Para en progreso: hace cuántas horas empezó. Para completadas: horas trabajadas y hace cuántas horas terminó.
   startedHoursAgo?: number;
   workedHours?: number;
+  requiresEvidence?: boolean;
   notes?: { author: string; body: string }[];
 };
 
@@ -36,7 +37,7 @@ const TASKS: SeedTask[] = [
   { station: "Estación 4", incident: 5102, description: "Reemplazar cartel de precios dañado por la tormenta", location: "Ruta 3 km 38, Cañuelas", hours: 5, assignees: ["csosa"], status: "pending" },
   { station: "Opessa", incident: null, description: "Pintar cordones y señalización de la playa", location: "Ruta 9 km 52, Campana", hours: 6, assignees: ["lfernandez"], status: "pending" },
   { station: "Estación 3", incident: 4710, description: "Revisar pérdida en el tanque de gasoil", location: "Av. San Martín 1200, Morón", hours: 4, assignees: ["mgomez", "drodriguez"], status: "completed", workedHours: 3.2, startedHoursAgo: 30, notes: [{ author: "drodriguez", body: "Era una junta del conducto. Se cambió y quedó sin pérdidas." }, { author: "mgomez", body: "Probamos presión durante 30 minutos, todo en orden." }] },
-  { station: "YPF", incident: 4655, description: "Reparar puerta automática del minimercado", location: "Av. Libertador 4500, CABA", hours: 2, assignees: ["csosa"], status: "completed", workedHours: 3.1, startedHoursAgo: 52, notes: [{ author: "csosa", body: "Se trabó el sensor. Costó más de lo previsto por el repuesto." }] },
+  { station: "YPF", incident: 4655, description: "Reparar puerta automática del minimercado", location: "Av. Libertador 4500, CABA", hours: 2, assignees: ["csosa"], status: "completed", requiresEvidence: true, workedHours: 3.1, startedHoursAgo: 52, notes: [{ author: "csosa", body: "Se trabó el sensor. Costó más de lo previsto por el repuesto." }] },
   { station: "Estación 4", incident: null, description: "Cambiar flexibles de los surtidores 1 y 2", location: "Ruta 3 km 38, Cañuelas", hours: 3, assignees: ["lfernandez"], status: "completed", workedHours: 2.4, startedHoursAgo: 75, notes: [{ author: "lfernandez", body: "Listo, se cambiaron los cuatro flexibles." }] },
   { station: "Opessa", incident: 4590, description: "Reparar baño de caballeros: pérdida en canilla y cisterna", location: "Ruta 9 km 52, Campana", hours: 2, assignees: ["drodriguez"], status: "completed", workedHours: 1.7, startedHoursAgo: 100 },
   { station: "YPF", incident: null, description: "Instalar tomacorrientes nuevos en la oficina", location: "Av. Libertador 4500, CABA", hours: 2.5, assignees: ["mgomez"], status: "completed", workedHours: 2.6, startedHoursAgo: 130 },
@@ -119,6 +120,7 @@ async function main() {
               status: t.status,
               startedAt,
               finishedAt,
+              requiresEvidence: t.requiresEvidence ?? false,
               onTime: finishedAt ? (t.workedHours ?? t.hours) <= t.hours : null,
               createdBy: adminId,
               createdAt,

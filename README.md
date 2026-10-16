@@ -190,17 +190,11 @@ docker compose up -d --build
 
 Los datos **no se pierden**: viven en el volumen `pgdata`, que sobrevive a reconstruir las imágenes. Las migraciones nuevas se aplican solas al arrancar la app. (Ojo: `docker compose down -v` sí borra los volúmenes, no lo uses salvo que quieras empezar de cero.)
 
-## 5. Cómo agregar una estación nueva
+## 5. Administrar estaciones
 
-Alcanza con insertar una fila en `stations`. Aparece sola en el selector de "Nueva tarea":
+Desde el panel de administrador, sección **Estaciones**: crear, renombrar, desactivar/reactivar (una estación inactiva deja de aparecer en "Nueva tarea" pero conserva sus tareas) y eliminar (solo si no tiene tareas).
 
-```bash
-docker compose exec db psql -U ypf -d ypf -c "INSERT INTO stations (name) VALUES ('Estación 5');"
-```
-
-Para ocultar una estación sin borrarla (sus tareas se conservan): `UPDATE stations SET is_active = false WHERE name = 'Estación 5';`
-
-Para que una instalación nueva ya la traiga, agregala también a la lista de `src/db/seed.ts`.
+Las del seed (`src/db/seed.ts`) son solo datos de ejemplo para una instalación nueva.
 
 ## 6. Comandos útiles
 
