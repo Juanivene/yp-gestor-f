@@ -15,6 +15,20 @@
       "when": 1791984962803,
       "tag": "0001_extensions_and_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791986864271,
+      "tag": "0002_evidence",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792162088310,
+      "tag": "0003_notifications",
+      "breakpoints": true
     }
   ]
 }

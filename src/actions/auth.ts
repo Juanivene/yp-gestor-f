@@ -21,7 +21,7 @@ export async function loginAction(input: LoginInput): Promise<ActionResult<{ nam
   const { password } = parsed.data;
 
   const h = await headers();
-  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
+  const ip = h.get("x-nf-client-connection-ip") || h.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   const key = `${username}|${ip}`;
   if (isRateLimited(key)) return { ok: false, error: messages.auth.tooMany };
 

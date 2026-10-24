@@ -1,6 +1,7 @@
 "use client";
 
 import { PartyPopper } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { TaskCard } from "@/components/task-card";
@@ -21,7 +22,27 @@ export function TaskGrid({
   showActions?: boolean;
   employees?: EmployeeOption[];
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [openId, setOpenId] = useState<number | null>(null);
+
+  // Las notificaciones llevan acá con ?tarea=ID: se abre el detalle y se limpia la URL al cerrarlo.
+  const paramId = Number(searchParams.get("tarea")) || null;
+  const [seenParam, setSeenParam] = useState<number | null>(null);
+  if (paramId !== seenParam) {
+    setSeenParam(paramId);
+    if (paramId) setOpenId(paramId);
+  }
+
+  function closeDetail() {
+    setOpenId(null);
+    if (!searchParams.has("tarea")) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("tarea");
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
+  }
   const [celebrate, setCelebrate] = useState(false);
 
   function handleFinished(onTime: boolean) {
@@ -44,7 +65,7 @@ export function TaskGrid({
         ))}
       </div>
 
-      <TaskDetailDialog taskId={openId} role={role} employees={employees} onClose={() => setOpenId(null)} />
+      <TaskDetailDialog taskId={openId} role={role} employees={employees} onClose={closeDetail} />
 
       <Dialog open={celebrate} onOpenChange={setCelebrate}>
         <DialogContent className="items-center border-emerald-500/40 text-center sm:max-w-sm">
