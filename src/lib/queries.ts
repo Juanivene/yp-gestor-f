@@ -39,8 +39,7 @@ export type TaskDetailData = TaskCardData & {
   notes: NoteData[];
 };
 
-export const TASK_SORTS = ["newest", "oldest", "station", "incident", "finished"] as const;
-export type TaskSort = (typeof TASK_SORTS)[number];
+export type TaskSort = "newest" | "oldest" | "station" | "incident" | "finished";
 
 export type TaskFilters = {
   // true = solo archivadas; sin definir = solo las no archivadas.

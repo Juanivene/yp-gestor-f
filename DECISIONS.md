@@ -50,3 +50,6 @@ Cosas que no estaban especificadas (o que cambié por una buena razón), una o d
 - **Botones de acción de la tarjeta** usan `stopPropagation`; el diálogo de felicitación vive en la grilla para sobrevivir a que la tarjeta cambie de estado al refrescar.
 - **Íconos y favicon:** SVG simple en `src/app/icon.svg`. Sin fuentes externas (fuente del sistema).
 - **Sin tests automáticos** (como se pidió); los flujos críticos se verificaron a mano contra una base local, incluyendo navegador mobile.
+
+- **Archivado:** columna `tasks.archived_at`; solo se archivan tareas completadas. El archivado es global (admin y empleados ven la tarea archivada en su sección). El empleado solo archiva sus tareas; al finalizar se le pregunta si la archiva.
+- **Ordenar por** vive en la barra de filtros (`?orden=`), y Archivados reutiliza la misma barra.

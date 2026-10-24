@@ -1,10 +1,11 @@
-import { TASK_SORTS, type TaskFilters, type TaskSort, type TaskStatus } from "@/lib/queries";
+import type { TaskFilters, TaskSort, TaskStatus } from "@/lib/queries";
 
 type Params = Record<string, string | string[] | undefined>;
 
 const STATUSES: TaskStatus[] = ["pending", "in_progress", "completed"];
 const PUNCTUALITY = ["on_time", "late"] as const;
 const EVIDENCE = ["missing", "with", "required"] as const;
+const TASK_SORTS: TaskSort[] = ["newest", "oldest", "station", "incident", "finished"];
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
