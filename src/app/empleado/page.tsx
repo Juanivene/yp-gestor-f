@@ -20,7 +20,7 @@ export default async function EmployeeHomePage() {
           description="Cuando te asignen un trabajo, lo vas a ver acá."
         />
       ) : (
-        <TaskGrid tasks={tasks} role="employee" showActions />
+        <TaskGrid tasks={tasks} role="employee" showActions selectable />
       )}
     </div>
   );

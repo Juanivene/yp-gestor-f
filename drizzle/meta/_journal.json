@@ -29,6 +29,13 @@
       "when": 1792162088310,
       "tag": "0003_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792848823883,
+      "tag": "0004_archive_tasks",
+      "breakpoints": true
     }
   ]
 }

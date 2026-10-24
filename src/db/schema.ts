@@ -76,6 +76,8 @@ export const tasks = pgTable(
     onTime: boolean("on_time"),
     requiresEvidence: boolean("requires_evidence").notNull().default(false),
     isImportant: boolean("is_important").notNull().default(false),
+    // Solo se archivan tareas completadas; null = visible en los listados normales.
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => users.id),

@@ -23,6 +23,7 @@ type Draft = {
   evidence: string;
   createdFrom: string;
   createdTo: string;
+  sort: string;
 };
 
 function toDraft(f: TaskFilters): Draft {
@@ -36,6 +37,7 @@ function toDraft(f: TaskFilters): Draft {
     evidence: f.evidence ?? ALL,
     createdFrom: f.createdFrom ?? "",
     createdTo: f.createdTo ?? "",
+    sort: f.sort ?? ALL,
   };
 }
 
@@ -51,6 +53,7 @@ function fromDraft(d: Draft): TaskFilters {
   if (d.evidence !== ALL) f.evidence = d.evidence as TaskFilters["evidence"];
   if (d.createdFrom) f.createdFrom = d.createdFrom;
   if (d.createdTo) f.createdTo = d.createdTo;
+  if (d.sort !== ALL) f.sort = d.sort as TaskFilters["sort"];
   return f;
 }
 
@@ -133,7 +136,9 @@ export function TaskFiltersBar({
   resultCount,
   stations,
   employees,
+  basePath = "/admin",
 }: {
+  basePath?: string;
   current: TaskFilters;
   resultCount: number;
   stations: { id: number; name: string }[];
@@ -147,7 +152,7 @@ export function TaskFiltersBar({
 
   function apply(next: Draft) {
     setDraft(next);
-    router.push(`/admin${filtersToQuery(fromDraft(next))}`);
+    router.push(`${basePath}${filtersToQuery(fromDraft(next))}`);
   }
 
   // Los combos y las fechas aplican al instante; el texto y la incidencia al enviar.
@@ -162,7 +167,7 @@ export function TaskFiltersBar({
         apply(draft);
       }}
     >
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <FilterField label="Descripción o lugar" htmlFor="filter-text">
           <ClearableInput
             id="filter-text"
@@ -191,6 +196,22 @@ export function TaskFiltersBar({
             { value: "completed", label: "Completada" },
           ]}
         />
+        <FilterField label="Ordenar por">
+          <Combobox
+            ariaLabel="Ordenar por"
+            value={draft.sort}
+            onChange={(v) => set({ sort: v })}
+            placeholder="Por estado"
+            options={[
+              { value: ALL, label: "Por estado (predeterminado)" },
+              { value: "newest", label: "Más nuevas primero" },
+              { value: "oldest", label: "Más antiguas primero" },
+              { value: "station", label: "Estación (A-Z)" },
+              { value: "incident", label: "Nº de incidencia" },
+              { value: "finished", label: "Finalizadas recientemente" },
+            ]}
+          />
+        </FilterField>
       </div>
 
       {showMore && (

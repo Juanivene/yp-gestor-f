@@ -1,4 +1,4 @@
-import type { TaskFilters, TaskStatus } from "@/lib/queries";
+import { TASK_SORTS, type TaskFilters, type TaskSort, type TaskStatus } from "@/lib/queries";
 
 type Params = Record<string, string | string[] | undefined>;
 
@@ -40,6 +40,8 @@ export function parseTaskFilters(params: Params): TaskFilters {
   if (from) out.createdFrom = from;
   const to = validDate(first(params.hasta));
   if (to) out.createdTo = to;
+  const sort = first(params.orden);
+  if (TASK_SORTS.includes(sort as TaskSort)) out.sort = sort as TaskSort;
   return out;
 }
 
@@ -55,6 +57,7 @@ export function filtersToQuery(f: TaskFilters): string {
   if (f.evidence) p.set("evidencia", f.evidence);
   if (f.createdFrom) p.set("desde", f.createdFrom);
   if (f.createdTo) p.set("hasta", f.createdTo);
+  if (f.sort) p.set("orden", f.sort);
   const s = p.toString();
   return s ? `?${s}` : "";
 }

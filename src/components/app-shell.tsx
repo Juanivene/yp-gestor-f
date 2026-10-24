@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, CheckCircle2, ClipboardList, Menu, Star, Users, Wrench, type LucideIcon } from "lucide-react";
+import { Building2, Archive, CheckCircle2, ClipboardList, Menu, Star, Users, Wrench, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -15,6 +15,7 @@ type NavItem = { href: string; label: string; icon: LucideIcon; exact?: boolean 
 const NAV: Record<"admin" | "employee", NavItem[]> = {
   admin: [
     { href: "/admin", label: "Tareas", icon: ClipboardList, exact: true },
+    { href: "/admin/archivados", label: "Archivados", icon: Archive },
     { href: "/admin/usuarios", label: "Usuarios", icon: Users },
     { href: "/admin/estaciones", label: "Estaciones", icon: Building2 },
   ],
@@ -22,6 +23,7 @@ const NAV: Record<"admin" | "employee", NavItem[]> = {
     { href: "/empleado", label: "Inicio", icon: ClipboardList, exact: true },
     { href: "/empleado/importantes", label: "Importantes", icon: Star },
     { href: "/empleado/completadas", label: "Completadas", icon: CheckCircle2 },
+    { href: "/empleado/archivadas", label: "Archivadas", icon: Archive },
   ],
 };
 
