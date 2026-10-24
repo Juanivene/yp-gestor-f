@@ -1,0 +1,6 @@
+[build]
+  # Migra (y carga los datos de ejemplo, que es idempotente) antes de compilar.
+  command = "npm run db:setup && npm run build"
+
+[build.environment]
+  NODE_VERSION = "22"

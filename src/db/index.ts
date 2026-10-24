@@ -8,7 +8,11 @@ type Db = PostgresJsDatabase<typeof schema>;
 const globalForDb = globalThis as unknown as { __db?: Db };
 
 function createDb(): Db {
-  const client = postgres(getEnv().DATABASE_URL, { max: 10 });
+  const client = postgres(getEnv().DATABASE_URL, {
+    // Serverless: una conexión por instancia y sin prepared statements (compatible con el pooler de Neon).
+    max: 1,
+    prepare: false,
+  });
   return drizzle(client, { schema });
 }
 

@@ -51,7 +51,7 @@ async function main() {
   if (!url) throw new Error("Falta la variable DATABASE_URL.");
   const adminPassword = process.env.SEED_ADMIN_PASSWORD || "admin12345";
 
-  const client = postgres(url, { max: 1 });
+  const client = postgres(url, { max: 1, prepare: false });
   const db = drizzle(client);
 
   try {

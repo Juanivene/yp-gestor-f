@@ -9,12 +9,12 @@ Cosas que no estaban especificadas (o que cambié por una buena razón), una o d
 - **Componentes shadcn escritos a mano** con el paquete unificado `radix-ui` (sin CLI de shadcn), con el mismo estilo y variables de tema.
 - **Zod 4** + `@hookform/resolvers` 5. Los formularios usan strings para números y el esquema los convierte (`z.coerce`); el servidor valida con el mismo esquema.
 - **Conexión a la base perezosa:** `db` se abre al primer uso, así `next build` no necesita base ni variables de entorno.
-- **Validación de entorno con Zod** (`src/lib/env.ts`): falla con un mensaje claro si falta `DATABASE_URL`. Las variables `POSTGRES_*` y `DOMAIN` las valida Docker Compose (`:?`).
+- **Validación de entorno con Zod** (`src/lib/env.ts`): falla con un mensaje claro si falta `DATABASE_URL`. 
 
 ## Autenticación
 
 - **Cookie de sesión de 30 días, sesión real de `SESSION_TTL_HOURS`:** desde un Server Component no se puede reescribir la cookie, así que la vigencia la decide la base (`sessions.expires_at`) y la cookie dura más para poder renovar de forma deslizante.
-- **Rate limit en memoria** por `usuario|IP`: 5 fallos cada 15 minutos; un login correcto limpia el contador. Se reinicia al reiniciar la app (suficiente para una sola instancia). La IP sale de `X-Forwarded-For`, que pone Caddy.
+- **Rate limit en memoria** por `usuario|IP`: 5 fallos cada 15 minutos; un login correcto limpia el contador. Ver sección de despliegue.
 - **Sesión vencida:** layouts y Server Actions redirigen a `/login?expirada=1`, que muestra el aviso "Tu sesión venció, volvé a ingresar.".
 - **Usuarios inactivos con sesión viva:** `getCurrentUser()` también los rechaza (defensa extra además de borrar las sesiones al dar de baja).
 - **Usernames** se guardan en minúsculas, con índice único sobre `lower(username)` y un `CHECK` (minúsculas, mínimo 5 caracteres).
@@ -35,14 +35,12 @@ Cosas que no estaban especificadas (o que cambié por una buena razón), una o d
 - **Mensaje a tiempo:** diálogo verde grande con ícono. Fuera de tiempo: toast neutro "Tarea finalizada. ¡Gracias por tu trabajo!".
 - **Búsqueda de empleados** con `unaccent(lower(nombre || ' ' || apellido)) LIKE`, escapando `%` y `_`. La extensión se crea en una migración (`0001_extensions_and_checks.sql`), que también agrega `CHECK` sobre horas, incidencia, usuario y notas.
 
-## Docker y despliegue
+## Despliegue (Netlify)
 
-- **Migraciones y seed en el contenedor:** se compilan con `tsup` a `dist/migrate.js` y `dist/seed.js` (bundle con drizzle y postgres incluidos). El binario nativo de argon2 se copia desde un stage con las dependencias de producción.
-- **Seed en el contenedor:** `docker compose exec app node dist/seed.js` (no corre solo al arrancar, para no recrear datos de ejemplo en producción).
-- **Healthcheck de la app** con `fetch` de Node a `/login` (la imagen slim no trae `curl` ni `wget`); Caddy espera a que la app esté sana.
-- **Nombres de proyecto Compose** (`ypf` y `ypf-dev`) fijos, para que el compose de desarrollo y el de producción nunca se pisen.
-- **Script `db:migrate`/`db:seed`** usan `--env-file-if-exists=.env` para leer el `.env` sin dependencias extra.
-- **Backups:** `pg_dump --clean --if-exists --no-owner`, así `restore.sh` reemplaza el contenido de una base existente. Si el dump sale vacío, falla y no deja archivo.
+- **Netlify + Neon:** la app corre como funciones serverless; la base es Postgres en Neon. Ya no hay Docker, Caddy ni backups propios (Neon ofrece restauración a un punto en el tiempo).
+- **Migraciones y seed en el build:** `netlify.toml` ejecuta `npm run db:setup` antes de `next build`. El seed es idempotente, así que repetirlo no duplica datos.
+- **Conexión serverless:** `max: 1` y `prepare: false` en postgres-js, compatible con el pooler de Neon.
+- **Rate limit en memoria:** en serverless es por instancia, por lo que es solo una barrera parcial (suficiente para una muestra). La IP sale de `x-nf-client-connection-ip`.
 - **Estaciones:** el seed usa `ON CONFLICT DO NOTHING` por nombre; agregar una estación es insertar una fila.
 
 ## UI
@@ -51,4 +49,4 @@ Cosas que no estaban especificadas (o que cambié por una buena razón), una o d
 - **Modal de detalle** carga los datos por una Server Action (`getTaskDetailAction`) que valida que el empleado esté asignado, así nunca viajan tareas ajenas al cliente.
 - **Botones de acción de la tarjeta** usan `stopPropagation`; el diálogo de felicitación vive en la grilla para sobrevivir a que la tarjeta cambie de estado al refrescar.
 - **Íconos y favicon:** SVG simple en `src/app/icon.svg`. Sin fuentes externas (fuente del sistema).
-- **Sin tests automáticos** (como se pidió); los flujos críticos se verificaron a mano contra el stack de Docker, incluyendo navegador mobile.
+- **Sin tests automáticos** (como se pidió); los flujos críticos se verificaron a mano contra una base local, incluyendo navegador mobile.
