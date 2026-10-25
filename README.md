@@ -39,10 +39,9 @@ Otros scripts: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run db
 3. En *Site configuration → Environment variables* cargá:
    - `DATABASE_URL` (la de Neon; si usaste la extensión ya está)
    - `SESSION_TTL_HOURS` (opcional, 8 por defecto)
-   - `SEED_ADMIN_PASSWORD` (obligatoria para correr el seed; no la subas al repositorio)
-4. Deploy. En cada build se ejecuta `npm run db:setup` (migraciones + seed idempotente) y luego `next build`.
+4. Deploy. En cada build se ejecuta `npm run db:migrate` y luego `next build`. El seed (admin, estaciones y empleados iniciales) se corre una sola vez a mano: `SEED_ADMIN_PASSWORD=... npm run db:seed`.
 
-Los datos quedan en Neon, así que persisten entre deploys. Para una instalación sin datos de ejemplo, cambiá `db:setup` por `db:migrate` en `netlify.toml` y creá el admin a mano.
+Los datos quedan en Neon, así que persisten entre deploys.
 
 ## Estructura
 

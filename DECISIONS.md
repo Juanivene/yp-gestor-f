@@ -38,7 +38,7 @@ Cosas que no estaban especificadas (o que cambié por una buena razón), una o d
 ## Despliegue (Netlify)
 
 - **Netlify + Neon:** la app corre como funciones serverless; la base es Postgres en Neon. Ya no hay Docker, Caddy ni backups propios (Neon ofrece restauración a un punto en el tiempo).
-- **Migraciones y seed en el build:** `netlify.toml` ejecuta `npm run db:setup` antes de `next build`. El seed es idempotente, así que repetirlo no duplica datos.
+- **Migraciones en el build:** `netlify.toml` ejecuta `npm run db:migrate` antes de `next build`. El seed no corre en el build: necesita `SEED_ADMIN_PASSWORD` y se ejecuta a mano una vez.
 - **Conexión serverless:** `max: 1` y `prepare: false` en postgres-js, compatible con el pooler de Neon.
 - **Rate limit en memoria:** en serverless es por instancia, por lo que es solo una barrera parcial (suficiente para una muestra). La IP sale de `x-nf-client-connection-ip`.
 - **Estaciones:** el seed usa `ON CONFLICT DO NOTHING` por nombre; agregar una estación es insertar una fila.
