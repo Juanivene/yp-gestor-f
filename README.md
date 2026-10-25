@@ -7,13 +7,10 @@ Sistema para una constructora que hace trabajos de mantenimiento en estaciones d
 
 Stack: Next.js (App Router) + TypeScript, Tailwind + shadcn/ui, PostgreSQL (Neon), Drizzle ORM, login propio con sesiones. Despliegue en **Netlify**.
 
-## Credenciales de prueba (las crea el seed)
+## Usuarios iniciales (los crea el seed)
 
-| Rol | Usuario | Contraseña |
-| --- | --- | --- |
-| Administrador | `admin` | `admin12345` (o el valor de `SEED_ADMIN_PASSWORD`) |
-| Empleados | `mgomez`, `lfernandez`, `drodriguez`, `csosa` | `empleado123` |
-| Empleado dado de baja | `racosta` | no puede ingresar |
+- **Administrador:** usuario `admin`, con la contraseña que definas en `SEED_ADMIN_PASSWORD`.
+- **Empleados:** el seed los crea con contraseñas aleatorias que se imprimen una sola vez en la consola; el admin puede cambiarlas desde la app.
 
 ## 1. Base de datos (Neon)
 
@@ -42,7 +39,7 @@ Otros scripts: `npm run lint`, `npm run typecheck`, `npm run build`, `npm run db
 3. En *Site configuration → Environment variables* cargá:
    - `DATABASE_URL` (la de Neon; si usaste la extensión ya está)
    - `SESSION_TTL_HOURS` (opcional, 8 por defecto)
-   - `SEED_ADMIN_PASSWORD` (opcional; **cambiala** si el sitio es público)
+   - `SEED_ADMIN_PASSWORD` (obligatoria para correr el seed; no la subas al repositorio)
 4. Deploy. En cada build se ejecuta `npm run db:setup` (migraciones + seed idempotente) y luego `next build`.
 
 Los datos quedan en Neon, así que persisten entre deploys. Para una instalación sin datos de ejemplo, cambiá `db:setup` por `db:migrate` en `netlify.toml` y creá el admin a mano.

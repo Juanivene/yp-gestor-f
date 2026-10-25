@@ -30,7 +30,8 @@ const EMPLOYEES = [
 async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("Falta la variable DATABASE_URL.");
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD || "admin12345";
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if (!adminPassword) throw new Error("Falta la variable SEED_ADMIN_PASSWORD (contraseña inicial del admin).");
 
   const client = postgres(url, { max: 1, prepare: false });
   const db = drizzle(client);
@@ -73,7 +74,7 @@ async function main() {
     }
 
     console.log("\nSeed listo.");
-    console.log(`  Administrador: admin / ${adminPassword} (si ya existía, se conserva su contraseña)`);
+    console.log("  Administrador: admin (si ya existía, se conserva su contraseña)");
     if (created.length > 0) {
       console.log("  Empleados nuevos (guardá estas contraseñas, no se vuelven a mostrar):");
       for (const c of created) console.log(`    ${c.username} / ${c.password}`);
