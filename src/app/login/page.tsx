@@ -1,5 +1,5 @@
-import { Wrench } from "lucide-react";
 import { redirect } from "next/navigation";
+import { BrandLogo } from "@/components/brand-logo";
 import { LoginForm } from "@/components/login-form";
 import { homeFor } from "@/lib/auth/guards";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -15,9 +15,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <main className="flex min-h-dvh items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-            <Wrench className="size-7" />
-          </div>
+          <BrandLogo className="w-56 rounded-2xl" priority />
           <div>
             <h1 className="text-2xl font-semibold">Mantenimiento de Estaciones</h1>
             <p className="mt-1 text-sm text-muted-foreground">Ingresá con tu usuario para continuar.</p>

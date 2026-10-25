@@ -1,9 +1,11 @@
 "use client";
 
-import { Building2, Archive, CheckCircle2, ClipboardList, Menu, Star, Users, Wrench, type LucideIcon } from "lucide-react";
+import { Building2, Archive, CheckCircle2, ClipboardList, Menu, Star, Users, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { BrandLogo } from "@/components/brand-logo";
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { NotificationBell } from "@/components/notification-bell";
 import { LogoutButton } from "@/components/logout-button";
 import { Button } from "@/components/ui/button";
@@ -35,15 +37,9 @@ function SidebarContent({ user, onNavigate }: { user: ShellUser; onNavigate?: ()
   const pathname = usePathname();
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 px-4 pt-5 pb-4">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
-          <Wrench className="size-5" />
-        </div>
-        <span className="text-sm leading-tight font-semibold">
-          Mantenimiento
-          <br />
-          de Estaciones
-        </span>
+      <div className="space-y-2 px-4 pt-5 pb-4">
+        <BrandLogo className="w-full" />
+        <p className="text-center text-xs font-medium text-muted-foreground">Mantenimiento de Estaciones</p>
       </div>
 
       <div className="mx-3 rounded-lg border bg-card px-3 py-2.5">
@@ -76,7 +72,8 @@ function SidebarContent({ user, onNavigate }: { user: ShellUser; onNavigate?: ()
         })}
       </nav>
 
-      <div className="border-t p-3">
+      <div className="space-y-1 border-t p-3">
+        <ChangePasswordDialog />
         <LogoutButton />
       </div>
     </div>

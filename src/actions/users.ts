@@ -2,14 +2,22 @@
 
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { isFailure, requireActionRole, type ActionResult } from "@/lib/auth/guards";
-import { generatePassword, hashPassword } from "@/lib/auth/password";
-import { destroyUserSessions } from "@/lib/auth/session";
+import { generatePassword, hashPassword, verifyPassword } from "@/lib/auth/password";
+import { createSession, destroyUserSessions, getCurrentUser } from "@/lib/auth/session";
 import { messages } from "@/lib/messages";
 import { listEmployees, type UserCardData } from "@/lib/queries";
-import { createUserSchema, type CreateUserInput } from "@/lib/validations/user";
+import {
+  changeOwnPasswordSchema,
+  createUserSchema,
+  setPasswordSchema,
+  type ChangeOwnPasswordInput,
+  type CreateUserInput,
+  type SetPasswordInput,
+} from "@/lib/validations/user";
 import { fieldErrorsFrom, isUniqueViolation } from "./utils";
 
 const refresh = () => revalidatePath("/", "layout");
@@ -76,6 +84,74 @@ export async function resetPasswordAction(userId: string): Promise<ActionResult<
     await destroyUserSessions(target.id);
     refresh();
     return { ok: true, data: { username: target.username, password, name: `${target.firstName} ${target.lastName}` } };
+  } catch {
+    return { ok: false, error: messages.generic.error };
+  }
+}
+
+export async function setUserPasswordAction(
+  userId: string,
+  input: SetPasswordInput,
+): Promise<ActionResult<{ name: string }>> {
+  const admin = await requireActionRole("admin");
+  if (isFailure(admin)) return admin;
+
+  const parsed = setPasswordSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: messages.generic.saveError, fieldErrors: fieldErrorsFrom(parsed.error) };
+  }
+
+  try {
+    const [updated] = await db
+      .update(users)
+      .set({ passwordHash: await hashPassword(parsed.data.password), updatedAt: sql`now()` })
+      .where(and(eq(users.id, userId), eq(users.role, "employee")))
+      .returning({ id: users.id, firstName: users.firstName, lastName: users.lastName });
+    if (!updated) return { ok: false, error: messages.users.notFound };
+
+    await destroyUserSessions(updated.id);
+    refresh();
+    return { ok: true, data: { name: `${updated.firstName} ${updated.lastName}` } };
+  } catch {
+    return { ok: false, error: messages.generic.error };
+  }
+}
+
+export async function changeOwnPasswordAction(input: ChangeOwnPasswordInput): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login?expirada=1");
+
+  const parsed = changeOwnPasswordSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: messages.generic.saveError, fieldErrors: fieldErrorsFrom(parsed.error) };
+  }
+  const { currentPassword, newPassword } = parsed.data;
+
+  try {
+    const [row] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, user.id)).limit(1);
+    if (!row || !(await verifyPassword(row.passwordHash, currentPassword))) {
+      return {
+        ok: false,
+        error: messages.users.passwordWrong,
+        fieldErrors: { currentPassword: messages.users.passwordWrong },
+      };
+    }
+    if (currentPassword === newPassword) {
+      return {
+        ok: false,
+        error: messages.users.passwordSame,
+        fieldErrors: { newPassword: messages.users.passwordSame },
+      };
+    }
+
+    await db
+      .update(users)
+      .set({ passwordHash: await hashPassword(newPassword), updatedAt: sql`now()` })
+      .where(eq(users.id, user.id));
+    // Cierra las sesiones en otros dispositivos y mantiene abierta la actual.
+    await destroyUserSessions(user.id);
+    await createSession(user.id);
+    return { ok: true, data: null };
   } catch {
     return { ok: false, error: messages.generic.error };
   }

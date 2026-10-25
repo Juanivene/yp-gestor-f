@@ -1,6 +1,6 @@
 "use client";
 
-import { Briefcase, KeyRound, Loader2, MoreVertical, UserMinus } from "lucide-react";
+import { Briefcase, KeyRound, Loader2, MoreVertical, Pencil, UserMinus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { deactivateUserAction, resetPasswordAction } from "@/actions/users";
@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { SetPasswordDialog } from "@/components/set-password-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -23,6 +24,7 @@ import type { UserCardData } from "@/lib/queries";
 export function UserCard({ user }: { user: UserCardData }) {
   const [confirm, setConfirm] = useState<"reset" | "deactivate" | null>(null);
   const [busy, setBusy] = useState(false);
+  const [setPasswordOpen, setSetPasswordOpen] = useState(false);
   const [credentials, setCredentials] = useState<Credentials | null>(null);
 
   async function run() {
@@ -68,6 +70,10 @@ export function UserCard({ user }: { user: UserCardData }) {
                 <KeyRound />
                 Resetear contraseña
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setSetPasswordOpen(true)}>
+                <Pencil />
+                Cambiar contraseña
+              </DropdownMenuItem>
               <DropdownMenuItem variant="destructive" onSelect={() => setConfirm("deactivate")}>
                 <UserMinus />
                 Dar de baja
@@ -102,6 +108,13 @@ export function UserCard({ user }: { user: UserCardData }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SetPasswordDialog
+        userId={user.id}
+        fullName={fullName}
+        open={setPasswordOpen}
+        onOpenChange={setSetPasswordOpen}
+      />
 
       <CredentialsDialog credentials={credentials} title="Contraseña nueva" onClose={() => setCredentials(null)} />
     </>
