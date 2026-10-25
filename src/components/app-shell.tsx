@@ -4,6 +4,7 @@ import { Building2, Archive, CheckCircle2, ClipboardList, Menu, Star, Users, Wre
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { NotificationBell } from "@/components/notification-bell";
 import { LogoutButton } from "@/components/logout-button";
 import { Button } from "@/components/ui/button";
@@ -76,7 +77,8 @@ function SidebarContent({ user, onNavigate }: { user: ShellUser; onNavigate?: ()
         })}
       </nav>
 
-      <div className="border-t p-3">
+      <div className="space-y-1 border-t p-3">
+        <ChangePasswordDialog />
         <LogoutButton />
       </div>
     </div>
