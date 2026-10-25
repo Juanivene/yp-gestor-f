@@ -5,6 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Mantenimiento de Estaciones",
   description: "Gestión de trabajos de mantenimiento en estaciones de servicio.",
+  appleWebApp: { capable: true, title: "JAR Mantenimiento", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {
