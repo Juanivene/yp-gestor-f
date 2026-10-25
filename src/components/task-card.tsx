@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Loader2, MapPin, Play, Square, Users } from "lucide-react";
+import { Check, Clock, Loader2, MapPin, Play, Square, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { startTaskAction } from "@/actions/tasks";
@@ -20,13 +20,21 @@ export function TaskCard({
   showAssignees,
   onOpen,
   onFinished,
+  selecting = false,
+  selected = false,
+  onToggleSelect,
 }: {
   task: TaskCardData;
   showActions: boolean;
   showAssignees: boolean;
   onOpen: (id: number) => void;
-  onFinished: (onTime: boolean) => void;
+  onFinished: (taskId: number, onTime: boolean) => void;
+  // Modo selección: la tarjeta se marca en vez de abrir el detalle (solo las completadas se pueden elegir).
+  selecting?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: number) => void;
 }) {
+  const pickable = selecting && task.status === "completed";
   const [busy, setBusy] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -47,11 +55,14 @@ export function TaskCard({
     <Card
       role="button"
       tabIndex={0}
-      onClick={() => onOpen(task.id)}
+      onClick={() => (selecting ? (pickable ? onToggleSelect?.(task.id) : undefined) : onOpen(task.id))}
+      aria-pressed={pickable ? selected : undefined}
       onKeyDown={(e) => {
         if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
           e.preventDefault();
-          onOpen(task.id);
+          if (selecting) {
+            if (pickable) onToggleSelect?.(task.id);
+          } else onOpen(task.id);
         }
       }}
       className={cn(
@@ -59,9 +70,22 @@ export function TaskCard({
         task.isImportant
           ? "border-red-500/60 bg-red-500/5 ring-1 ring-red-500/30 hover:border-red-500"
           : "hover:border-primary/50",
+        selecting && !pickable && "cursor-default opacity-50",
+        selected && "border-primary ring-2 ring-primary/60",
       )}
     >
       <div className="flex flex-wrap items-center gap-2">
+        {pickable && (
+          <span
+            aria-hidden
+            className={cn(
+              "flex size-5 items-center justify-center rounded border",
+              selected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/60",
+            )}
+          >
+            {selected && <Check className="size-3.5" />}
+          </span>
+        )}
         {task.isImportant && <ImportantBadge />}
         <Badge variant="secondary">{task.stationName}</Badge>
         {task.incidentNumber !== null && <Badge variant="important">Incidencia #{task.incidentNumber}</Badge>}
@@ -98,7 +122,7 @@ export function TaskCard({
         </div>
       </div>
 
-      {showActions && task.status === "pending" && (
+      {showActions && !selecting && task.status === "pending" && (
         <Button
           className="mt-1 w-full"
           disabled={busy}
@@ -112,7 +136,7 @@ export function TaskCard({
         </Button>
       )}
 
-      {showActions && task.status === "in_progress" && (
+      {showActions && !selecting && task.status === "in_progress" && (
         <>
           <Button
             variant="success"
@@ -131,7 +155,7 @@ export function TaskCard({
             requiresEvidence={task.requiresEvidence}
             open={confirmOpen}
             onOpenChange={setConfirmOpen}
-            onFinished={onFinished}
+            onFinished={(onTime) => onFinished(task.id, onTime)}
           />
         </>
       )}

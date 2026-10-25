@@ -54,7 +54,7 @@ export default async function AdminTasksPage({
           />
         )
       ) : (
-        <TaskGrid tasks={tasks} role="admin" employees={employees} />
+        <TaskGrid tasks={tasks} role="admin" employees={employees} selectable />
       )}
     </div>
   );

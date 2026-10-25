@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, exists, inArray, isNotNull, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, exists, inArray, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { stations, taskAssignees, taskEvidence, taskNotes, tasks, users } from "@/db/schema";
 
@@ -19,6 +19,7 @@ export type TaskCardData = {
   requiresEvidence: boolean;
   hasEvidence: boolean;
   isImportant: boolean;
+  isArchived: boolean;
   assignees: AssigneeInfo[];
 };
 
@@ -38,7 +39,12 @@ export type TaskDetailData = TaskCardData & {
   notes: NoteData[];
 };
 
+export type TaskSort = "newest" | "oldest" | "station" | "incident" | "finished";
+
 export type TaskFilters = {
+  // true = solo archivadas; sin definir = solo las no archivadas.
+  archived?: boolean;
+  sort?: TaskSort;
   assigneeId?: string;
   onlyImportant?: boolean;
   onlyCompleted?: boolean;
@@ -51,6 +57,23 @@ export type TaskFilters = {
   text?: string;
   createdFrom?: string; // YYYY-MM-DD
   createdTo?: string; // YYYY-MM-DD (inclusive)
+};
+
+const orderFor = (sort?: TaskSort) => {
+  switch (sort) {
+    case "newest":
+      return [desc(tasks.createdAt), desc(tasks.id)];
+    case "oldest":
+      return [asc(tasks.createdAt), asc(tasks.id)];
+    case "station":
+      return [asc(stations.name), desc(tasks.createdAt), desc(tasks.id)];
+    case "incident":
+      return [sql`${tasks.incidentNumber} DESC NULLS LAST`, desc(tasks.id)];
+    case "finished":
+      return [sql`${tasks.finishedAt} DESC NULLS LAST`, desc(tasks.id)];
+    default:
+      return [statusRank, desc(tasks.createdAt), desc(tasks.id)];
+  }
 };
 
 const statusRank = sql`CASE ${tasks.status} WHEN 'in_progress' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END`;
@@ -91,6 +114,7 @@ const taskColumns = {
   onTime: tasks.onTime,
   requiresEvidence: tasks.requiresEvidence,
   isImportant: tasks.isImportant,
+  isArchived: sql<boolean>`${tasks.archivedAt} IS NOT NULL`,
   hasEvidence: sql<boolean>`EXISTS (SELECT 1 FROM ${taskEvidence} WHERE ${taskEvidence.taskId} = ${tasks.id})`,
   startedAt: tasks.startedAt,
   finishedAt: tasks.finishedAt,
@@ -106,7 +130,7 @@ function isAssignedTo(userId: string): SQL {
 }
 
 export async function listTasks(filters: TaskFilters = {}): Promise<TaskCardData[]> {
-  const conditions: SQL[] = [];
+  const conditions: SQL[] = [filters.archived ? isNotNull(tasks.archivedAt) : isNull(tasks.archivedAt)];
   if (filters.assigneeId) conditions.push(isAssignedTo(filters.assigneeId));
   if (filters.onlyImportant) conditions.push(isNotNull(tasks.incidentNumber));
   if (filters.onlyCompleted) conditions.push(eq(tasks.status, "completed"));
@@ -137,7 +161,7 @@ export async function listTasks(filters: TaskFilters = {}): Promise<TaskCardData
     .from(tasks)
     .innerJoin(stations, eq(stations.id, tasks.stationId))
     .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(statusRank, desc(tasks.createdAt), desc(tasks.id));
+    .orderBy(...orderFor(filters.sort));
 
   return attachAssignees(
     rows.map((r) => ({
@@ -153,6 +177,7 @@ export async function listTasks(filters: TaskFilters = {}): Promise<TaskCardData
       requiresEvidence: r.requiresEvidence,
       hasEvidence: r.hasEvidence,
       isImportant: r.isImportant,
+      isArchived: r.isArchived,
     })),
   );
 }

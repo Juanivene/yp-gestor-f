@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
@@ -318,6 +318,36 @@ export async function addNoteAction(taskId: number, input: { body: string }): Pr
         authorName: `${user.firstName} ${user.lastName}`,
       },
     };
+  } catch {
+    return { ok: false, error: messages.generic.error };
+  }
+}
+
+// Archiva o desarchiva varias tareas de una vez. Solo tareas completadas; el empleado, solo las suyas.
+export async function archiveTasksAction(taskIds: number[], archive: boolean): Promise<ActionResult<{ count: number }>> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login?expirada=1");
+  const ids = [...new Set(taskIds)].filter((n) => Number.isInteger(n) && n > 0).slice(0, 500);
+  if (ids.length === 0) return { ok: false, error: messages.tasks.notFound };
+
+  try {
+    const rows = await db
+      .update(tasks)
+      .set({ archivedAt: archive ? sql`now()` : null, updatedAt: sql`now()` })
+      .where(
+        and(
+          inArray(tasks.id, ids),
+          eq(tasks.status, "completed"),
+          archive ? isNull(tasks.archivedAt) : isNotNull(tasks.archivedAt),
+          user.role === "employee"
+            ? sql`EXISTS (SELECT 1 FROM ${taskAssignees} WHERE ${taskAssignees.taskId} = ${tasks.id} AND ${taskAssignees.userId} = ${user.id})`
+            : undefined,
+        ),
+      )
+      .returning({ id: tasks.id });
+    refresh();
+    if (rows.length === 0) return { ok: false, error: messages.tasks.notArchivable };
+    return { ok: true, data: { count: rows.length } };
   } catch {
     return { ok: false, error: messages.generic.error };
   }

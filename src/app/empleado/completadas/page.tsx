@@ -20,7 +20,7 @@ export default async function CompletedTasksPage() {
           description="Cuando finalices un trabajo, queda guardado acá."
         />
       ) : (
-        <TaskGrid tasks={tasks} role="employee" />
+        <TaskGrid tasks={tasks} role="employee" selectable />
       )}
     </div>
   );
